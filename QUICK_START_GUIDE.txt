@@ -1,0 +1,136 @@
+# 🎨 ComfyUI Image Generator - Quick Start Guide
+
+## ⚡ QUICK START (1 Minute Setup)
+
+### 1. Double-click `START.bat`
+That's it! The application will start:
+- ComfyUI Backend (Port 8189)
+- Backend API Server (Port 8000)
+- Web Interface (Port 8890)
+
+### 2. Open your browser
+```
+http://localhost:8890/index.html
+```
+
+---
+
+## ✨ Features
+
+### 🔓 Guest Mode (No Login Required)
+- Generate images immediately
+- See **blurred preview** with login prompt
+- Try the app before signing up
+
+### 👤 Logged-in Mode
+- **Full-quality** images instantly
+- 100 free credits on signup
+- Save & view image history
+- Access to all features
+
+---
+
+## 🎯 How to Use
+
+### As a Guest:
+1. Visit `http://localhost:8890/index.html`
+2. Enter your image prompt
+3. Click "Generate"
+4. See **blurred image** with "Login Required" overlay
+5. Click "Login" to create an account
+
+### As a Logged-in User:
+1. Go to `http://localhost:8890/login.html`
+2. Sign up or log in
+3. Generate images → See **full quality** immediately
+4. All images saved to your account
+
+---
+
+## 🛠️ Technical Details
+
+### What Was Fixed:
+✅ **CORS Issue** - Login/Register now works
+✅ **Guest Mode** - Use app without account
+✅ **Image Blur** - Guests see blurred preview
+✅ **Smart Auth** - Automatic login state detection
+✅ **Clean Codebase** - Removed all unnecessary files
+
+### Ports:
+- **8189** - ComfyUI Backend
+- **8000** - Backend API (FastAPI)
+- **8890** - Web Interface (Flask)
+
+### File Structure:
+```
+ComfyUI-ImageGenerator/
+├── START.bat                 # ← Start everything
+├── ai_platform/backend/      # FastAPI backend
+├── web_wrapper/              # Flask + Frontend
+└── main.py                   # ComfyUI entry
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### "fetch failed" error?
+```powershell
+# Make sure backend is running:
+cd ai_platform\backend
+venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
+```
+
+### Backend won't start?
+```powershell
+# Install dependencies:
+cd ai_platform\backend
+venv\Scripts\pip install -r requirements.txt
+```
+
+### ComfyUI not generating?
+```powershell
+# Check if ComfyUI is running:
+curl http://localhost:8189/queue
+```
+
+---
+
+## 📝 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Create account
+- `POST /api/auth/login` - Login
+
+### Image Generation
+- `POST /queue` - Add to queue
+- `GET /latest-image` - Get latest image
+- `GET /prompt/status/:id` - Check status
+
+---
+
+## 🔐 Security Note
+
+⚠️ **Current CORS setting allows all origins (development only)**
+
+Before production, update `ai_platform/backend/app/main.py`:
+```python
+allow_origins=["https://your-domain.com"]
+```
+
+---
+
+## 🆘 Need Help?
+
+1. Check `FIXES_COMPLETE.txt` for detailed documentation
+2. Check browser console (F12) for errors
+3. Verify all services are running
+4. Ensure `.env` file exists in `ai_platform/backend/`
+
+---
+
+## 🎉 You're Ready!
+
+Just run **`START.bat`** and enjoy!
+
+**Made with ❤️ for the AI community**
