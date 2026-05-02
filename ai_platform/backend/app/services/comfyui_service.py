@@ -22,6 +22,8 @@ class ComfyUIService:
     def __init__(self):
         self.base_url = settings.COMFYUI_URL.rstrip('/')
         self.timeout = settings.COMFYUI_TIMEOUT
+        self._cached_models = []
+        self._models_cache_time = 0.0
         logger.info(f"ComfyUI Service initialized with base URL: {self.base_url}")
     
     async def generate_image(
@@ -311,28 +313,33 @@ class ComfyUIService:
         Returns:
             List of model filenames
         """
+        if self._cached_models and (time.time() - self._models_cache_time) < 300:
+            return self._cached_models
+
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{self.base_url}/object_info",
+                    f"{self.base_url}/object_info/CheckpointLoaderSimple",
                     timeout=aiohttp.ClientTimeout(total=10)
                 ) as response:
                     if response.status != 200:
                         logger.error(f"Failed to get models: {response.status}")
-                        return []
+                        return self._cached_models
                     
                     object_info = await response.json()
                     
                     # Extract checkpoint models
-                    checkpoint_info = object_info.get("CheckpointLoaderSimple", {})
+                    checkpoint_info = object_info.get("CheckpointLoaderSimple", object_info)
                     models = checkpoint_info.get("input", {}).get("required", {}).get("ckpt_name", [[]])[0]
-                    
+
+                    self._cached_models = models or []
+                    self._models_cache_time = time.time()
                     logger.info(f"Found {len(models)} available models")
-                    return models
+                    return self._cached_models
                     
         except Exception as e:
             logger.error(f"Error getting available models: {str(e)}")
-            return []
+            return self._cached_models
     
     async def health_check(self) -> bool:
         """
@@ -344,8 +351,8 @@ class ComfyUIService:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{self.base_url}/system_stats",
-                    timeout=aiohttp.ClientTimeout(total=5)
+                    f"{self.base_url}/queue",
+                    timeout=aiohttp.ClientTimeout(total=10)
                 ) as response:
                     return response.status == 200
         except Exception as e:

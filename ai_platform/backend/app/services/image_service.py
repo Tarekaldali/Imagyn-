@@ -226,11 +226,12 @@ class ImageService:
             return 0
     
     @staticmethod
-    async def get_recent_images(limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_recent_images(user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Get most recent images (for admin dashboard)
         
         Args:
+            user_id: User ID
             limit: Number of images to return
             
         Returns:
@@ -238,7 +239,7 @@ class ImageService:
         """
         try:
             supabase = get_supabase_admin()
-            response = supabase.table("images").select("*").order("created_at", desc=True).limit(limit).execute()
+            response = supabase.table("images").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(limit).execute()
             return response.data if response.data else []
             
         except Exception as e:

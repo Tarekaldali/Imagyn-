@@ -9,7 +9,8 @@ import os
 from app.models.schemas import (
     ImageGenerationRequest,
     ImageGenerationResponse,
-    ImageResponse
+    ImageResponse,
+    JobResponse,
 )
 from app.utils.supabase_client import get_current_user
 from app.services.user_service import UserService
@@ -22,6 +23,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _serialize_timestamp(value):
+    if value is None:
+        return None
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
 @router.post("/generate_image", response_model=ImageGenerationResponse)
@@ -154,7 +161,7 @@ async def generate_image(
             # Image was created, so we don't fail the request
         
         # 7. Update job
-        await JobService.update_job_status(job['id'], "completed")
+        await JobService.update_job_status(job['id'], "completed", image_url=image_url)
         await JobService.update_job_gpu_time(job['id'], generation_result['generation_time'])
         
         # Get updated user credits
@@ -366,6 +373,35 @@ async def generate_image_async(
         )
 
 
+@router.get("/jobs", response_model=List[JobResponse])
+async def get_user_jobs(
+    limit: int = 50,
+    offset: int = 0,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Get the authenticated user's generation jobs.
+    """
+    try:
+        if limit > 100:
+            limit = 100
+
+        jobs = await JobService.get_user_jobs(
+            user_id=user["id"],
+            limit=limit,
+            offset=offset,
+        )
+
+        return [JobResponse(**job) for job in jobs]
+
+    except Exception as e:
+        logger.error(f"Error fetching user jobs: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch jobs"
+        )
+
+
 @router.get("/jobs/{job_id}/status")
 async def get_job_status(
     job_id: str,
@@ -398,7 +434,7 @@ async def get_job_status(
         response = {
             "job_id": job['id'],
             "status": job['status'],
-            "created_at": job['created_at'].isoformat() if job['created_at'] else None
+            "created_at": _serialize_timestamp(job.get('created_at'))
         }
         
         if job['status'] == "completed" and job.get('image_url'):
@@ -421,6 +457,40 @@ async def get_job_status(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch job status"
         )
+
+
+@router.get("/models")
+async def get_models():
+    """
+    Return models configured for image generation.
+    """
+    comfyui_service = get_comfyui_service()
+
+    models = await comfyui_service.get_available_models()
+    if not models:
+        models = settings.get_allowed_models_list()
+
+    return {
+        "success": True,
+        "models": models,
+        "default_model": settings.DEFAULT_MODEL,
+    }
+
+
+@router.get("/system/status")
+async def get_system_status():
+    """
+    Return backend and ComfyUI availability for diagnostics.
+    """
+    comfyui_service = get_comfyui_service()
+
+    return {
+        "success": True,
+        "backend": "online",
+        "comfyui_online": await comfyui_service.health_check(),
+        "default_model": settings.DEFAULT_MODEL,
+        "configured_models": settings.get_allowed_models_list(),
+    }
 
 
 @router.get("/user_images", response_model=List[ImageResponse])
