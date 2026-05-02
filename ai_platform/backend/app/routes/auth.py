@@ -3,13 +3,15 @@ Authentication Routes
 Handles user registration and login
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 import logging
+from supabase import create_client
 
 from app.config import settings
-from app.utils.supabase_client import supabase_admin
+from app.services.user_service import UserService
+from app.utils.supabase_client import get_current_user, supabase_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -36,6 +38,31 @@ class AuthResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     user: Optional[dict] = None
+
+
+def _create_auth_client():
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+
+
+async def _ensure_user_profile(user_id: str, name: str, email: str) -> Optional[dict]:
+    existing_user = await UserService.get_user_by_id(user_id)
+    if existing_user:
+        updates = {}
+        if name and existing_user.get("name") != name:
+            updates["name"] = name
+        if email and existing_user.get("email") != email:
+            updates["email"] = email
+        if updates:
+            updated_user = await UserService.update_user(user_id, updates)
+            if updated_user:
+                return updated_user
+        return existing_user
+
+    return await UserService.create_user(
+        user_id=user_id,
+        email=email,
+        name=name,
+    )
 
 
 @router.post("/register", response_model=AuthResponse)
@@ -92,30 +119,27 @@ async def register(request: RegisterRequest):
                     detail=f"Registration failed: {error_msg}"
                 )
         
-        # Step 2: Create user record in public.users table (admin client bypasses RLS)
+        # Step 2: Ensure user record exists in public.users.
+        # Newer schemas create this automatically with an auth trigger, so we only
+        # insert manually when the profile is still missing.
         try:
-            user_data = {
-                "id": user_id,
-                "name": request.name,
-                "email": request.email,
-                "credits": 100,  # Give initial free credits
-                "role": "user"
-            }
-            
-            response = supabase_admin.table("users").insert(user_data).execute()
-            
-            if not response.data:
+            user_profile = await _ensure_user_profile(
+                user_id=user_id,
+                name=request.name,
+                email=str(request.email),
+            )
+
+            if not user_profile:
                 logger.error("Failed to create user record in database")
-                # Try to clean up auth user
                 try:
                     supabase_admin.auth.admin.delete_user(user_id)
-                except:
+                except Exception:
                     pass
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to create user profile"
                 )
-            
+
             logger.info(f"User record created successfully: {user_id}")
             
         except Exception as e:
@@ -135,11 +159,14 @@ async def register(request: RegisterRequest):
         
         # Step 3: Generate access token for immediate login
         try:
-            # Sign in to get tokens
-            sign_in_response = supabase_admin.auth.sign_in_with_password({
-                "email": request.email,
+            sign_in_response = _create_auth_client().auth.sign_in_with_password({
+                "email": str(request.email),
                 "password": request.password
             })
+
+            await UserService.update_last_login(user_id)
+
+            user_profile = await UserService.get_user_by_id(user_id)
             
             return AuthResponse(
                 success=True,
@@ -147,12 +174,7 @@ async def register(request: RegisterRequest):
                 user_id=user_id,
                 access_token=sign_in_response.session.access_token if sign_in_response.session else None,
                 refresh_token=sign_in_response.session.refresh_token if sign_in_response.session else None,
-                user={
-                    "id": user_id,
-                    "name": request.name,
-                    "email": request.email,
-                    "credits": 100
-                }
+                user=user_profile
             )
             
         except Exception as e:
@@ -162,12 +184,7 @@ async def register(request: RegisterRequest):
                 success=True,
                 message="Registration successful! Please log in.",
                 user_id=user_id,
-                user={
-                    "id": user_id,
-                    "name": request.name,
-                    "email": request.email,
-                    "credits": 100
-                }
+                user=await UserService.get_user_by_id(user_id)
             )
             
     except HTTPException:
@@ -191,8 +208,8 @@ async def login(request: LoginRequest):
         logger.info(f"Login attempt for email: {request.email}")
         
         # Sign in with Supabase
-        response = supabase_admin.auth.sign_in_with_password({
-            "email": request.email,
+        response = _create_auth_client().auth.sign_in_with_password({
+            "email": str(request.email),
             "password": request.password
         })
         
@@ -202,10 +219,16 @@ async def login(request: LoginRequest):
                 detail="Invalid email or password"
             )
         
-        # Get user data from database
-        user_response = supabase_admin.table("users").select("*").eq("id", response.user.id).execute()
-        
-        user_data = user_response.data[0] if user_response.data else None
+        metadata = getattr(response.user, "user_metadata", {}) or {}
+        fallback_name = metadata.get("name") or str(request.email).split("@", 1)[0]
+
+        user_data = await _ensure_user_profile(
+            user_id=response.user.id,
+            name=fallback_name,
+            email=str(request.email),
+        )
+
+        await UserService.update_last_login(response.user.id)
         
         return AuthResponse(
             success=True,
@@ -232,3 +255,14 @@ async def login(request: LoginRequest):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Login failed: {error_msg}"
             )
+
+
+@router.get("/me")
+async def get_me(current_user: dict = Depends(get_current_user)):
+    """
+    Return the authenticated user's profile.
+    """
+    return {
+        "success": True,
+        "user": current_user
+    }
