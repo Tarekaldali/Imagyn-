@@ -139,6 +139,16 @@ except:
 
 if args.cpu:
     cpu_state = CPUState.CPU
+elif cpu_state == CPUState.GPU:
+    cuda_available = False
+    try:
+        cuda_available = bool(torch.cuda.is_available())
+    except:
+        cuda_available = False
+
+    if not cuda_available and not xpu_available and not npu_available and not mlu_available and not ixuca_available:
+        logging.warning("CUDA is unavailable in this PyTorch build. Falling back to CPU mode.")
+        cpu_state = CPUState.CPU
 
 def is_intel_xpu():
     global cpu_state
