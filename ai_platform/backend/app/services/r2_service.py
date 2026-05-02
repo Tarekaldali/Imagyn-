@@ -10,6 +10,7 @@ import logging
 from typing import Optional
 import uuid
 from pathlib import Path
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -88,11 +89,16 @@ class R2Service:
             True if successful, False otherwise
         """
         try:
+            key = image_key
+            if image_key.startswith("http://") or image_key.startswith("https://"):
+                parsed = urlparse(image_key)
+                key = parsed.path.lstrip("/")
+
             self.s3_client.delete_object(
                 Bucket=self.bucket_name,
-                Key=image_key
+                Key=key
             )
-            logger.info(f"Image deleted successfully: {image_key}")
+            logger.info(f"Image deleted successfully: {key}")
             return True
             
         except ClientError as e:

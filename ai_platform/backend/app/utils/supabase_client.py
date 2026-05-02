@@ -12,18 +12,22 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Initialize Supabase clients
-# Service role client has admin privileges (bypasses RLS)
-supabase_admin: Client = create_client(
-    settings.SUPABASE_URL,
-    settings.SUPABASE_SERVICE_ROLE_KEY
-)
+def _create_admin_client() -> Client:
+    return create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_SERVICE_ROLE_KEY
+    )
 
-# Regular client for user operations (respects RLS)
-supabase_client: Client = create_client(
-    settings.SUPABASE_URL,
-    settings.SUPABASE_KEY
-)
+
+def _create_public_client() -> Client:
+    return create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_KEY
+    )
+
+
+# Initialize long-lived admin client for table operations.
+supabase_admin: Client = _create_admin_client()
 
 # Security scheme for JWT authentication
 security = HTTPBearer()
@@ -34,7 +38,7 @@ def get_supabase_client() -> Client:
     Get Supabase client instance for user operations
     Returns: Supabase Client with user-level permissions
     """
-    return supabase_client
+    return _create_public_client()
 
 
 def get_supabase_admin() -> Client:
@@ -61,8 +65,8 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
     try:
         token = credentials.credentials
         
-        # Verify token with Supabase
-        user = supabase_client.auth.get_user(token)
+        # Use a fresh public client so per-request auth state cannot leak between users.
+        user = get_supabase_client().auth.get_user(token)
         
         if not user:
             raise HTTPException(
@@ -94,7 +98,7 @@ async def get_current_user(user = Depends(verify_token)) -> Dict[str, Any]:
     """
     try:
         # User is a Supabase User object, access id as attribute
-        user_id = user.id
+        user_id = getattr(user, "id", None) or user.get("id")
         logger.info(f"Fetching user details for ID: {user_id}")
         
         # Fetch full user details from database

@@ -185,22 +185,15 @@ class UserService:
         """
         try:
             supabase = get_supabase_admin()
-            
-            # Get current credits
-            user = await UserService.get_user_by_id(user_id)
-            if not user:
-                return False
-            
-            current_credits = user.get("credits", 0)
-            new_credits = max(0, current_credits - amount)
-            
-            # Update credits
-            response = supabase.table("users").update({"credits": new_credits}).eq("id", user_id).execute()
-            
+            response = supabase.rpc(
+                "deduct_credits",
+                {"user_id_param": user_id, "credits_param": amount}
+            ).execute()
+
             if response.data:
-                logger.info(f"Deducted {amount} credits from user {user_id}. New balance: {new_credits}")
+                logger.info(f"Deducted {amount} credits from user {user_id}")
                 return True
-            
+
             return False
             
         except Exception as e:
@@ -221,22 +214,15 @@ class UserService:
         """
         try:
             supabase = get_supabase_admin()
-            
-            # Get current credits
-            user = await UserService.get_user_by_id(user_id)
-            if not user:
-                return False
-            
-            current_credits = user.get("credits", 0)
-            new_credits = current_credits + amount
-            
-            # Update credits
-            response = supabase.table("users").update({"credits": new_credits}).eq("id", user_id).execute()
-            
+            response = supabase.rpc(
+                "add_credits",
+                {"user_id_param": user_id, "credits_param": amount}
+            ).execute()
+
             if response.data:
-                logger.info(f"Added {amount} credits to user {user_id}. New balance: {new_credits}")
+                logger.info(f"Added {amount} credits to user {user_id}")
                 return True
-            
+
             return False
             
         except Exception as e:
