@@ -2108,12 +2108,16 @@ def get_module_name(module_path: str) -> str:
 
 async def load_custom_node(module_path: str, ignore=set(), module_parent="custom_nodes") -> bool:
     module_name = get_module_name(module_path)
+    # Ensure we always have a valid sys module name to register in sys.modules.
+    # Start with the derived module name and then adjust for files or directories.
+    sys_module_name = module_name
     if os.path.isfile(module_path):
-        sp = os.path.splitext(module_path)
-        module_name = sp[0]
-        sys_module_name = module_name
+        # Use the base filename without extension as the module name
+        sys_module_name = os.path.splitext(os.path.basename(module_path))[0]
+        module_name = sys_module_name
     elif os.path.isdir(module_path):
-        sys_module_name = module_path.replace(".", "_x_")
+        # Use the directory name as module name, sanitize dots
+        sys_module_name = os.path.basename(module_path).replace(".", "_x_")
 
     try:
         logging.debug("Trying to load custom node {}".format(module_path))

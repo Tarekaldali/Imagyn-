@@ -1,0 +1,22 @@
+{
+  "name": "imagyn-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 8890",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 8890"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.14.1",
+    "@supabase/supabase-js": "^2.34.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "vite": "^5.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "tailwindcss": "^3.4.17"
+  }
+}
