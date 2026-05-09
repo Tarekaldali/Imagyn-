@@ -172,14 +172,14 @@ export default function Studio({
             </label>
           </div>
 
-          {error && (
+            {error && (
             <div className="rounded-[1.5rem] border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
               {error}
             </div>
           )}
 
           <button type="submit" disabled={busy || !systemStatus?.comfyui_online} className="primary-button w-full justify-center">
-            {busy ? 'Queueing generation...' : systemStatus?.comfyui_online ? 'Generate on GPU' : 'Waiting for ComfyUI'}
+            {busy ? 'Queueing generation...' : systemStatus?.comfyui_online ? 'Generate on GPU' : 'Waiting for GPU backend'}
           </button>
         </form>
 
@@ -208,7 +208,7 @@ export default function Studio({
                   <p className="eyebrow">Render queue</p>
                   <h3 className="mt-3 text-3xl font-semibold text-[var(--text-strong)]">Queue a prompt to seed the gallery.</h3>
                   <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--text-soft)]">
-                    Imagyn now shows real render state, so once ComfyUI completes a job the finished image returns here and lands in your history.
+                    Imagyn now shows real render state, so once the render backend completes a job the finished image returns here and lands in your history.
                   </p>
                 </div>
               )}

@@ -11,13 +11,13 @@ export default function CanvasFallback({ latestImage }) {
             <div className="mx-auto overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/40 shadow-[0_24px_60px_rgba(2,6,23,0.45)]">
               <img src={latestImage.url} alt={latestImage.prompt} className="max-h-[620px] w-full object-contain" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-200/70">Latest Render</p>
-              <h1 className="mt-4 text-5xl font-semibold text-white">ComfyUI Studio</h1>
-              <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-slate-300">
-                {latestImage.prompt}
-              </p>
-            </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-200/70">Latest Render</p>
+                <h1 className="mt-4 text-5xl font-semibold text-white">Imagyn Studio</h1>
+                <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+                  {latestImage.prompt}
+                </p>
+              </div>
           </div>
         ) : (
           <div className="space-y-8 text-center">
@@ -28,7 +28,7 @@ export default function CanvasFallback({ latestImage }) {
             </div>
 
             <div>
-              <h1 className="text-6xl font-semibold tracking-tight text-white">ComfyUI Studio</h1>
+              <h1 className="text-6xl font-semibold tracking-tight text-white">Imagyn Studio</h1>
               <p className="mt-6 text-2xl text-slate-300">Professional AI Image Generation</p>
               <p className="mt-4 text-lg italic text-slate-400">
                 Enter a prompt and click Generate Image to create your next render.

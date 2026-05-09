@@ -19,9 +19,27 @@ from app.services.comfyui_service import get_comfyui_service
 from app.services.r2_service import get_r2_service
 from app.config import settings
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _serialize_timestamp(value):
+    """Normalize timestamp values that may come as datetime or ISO string."""
+    if not value:
+        return None
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, str):
+        return value
+
+    try:
+        return value.isoformat()
+    except Exception:
+        return str(value)
 
 
 @router.post("/generate_image", response_model=ImageGenerationResponse)
@@ -398,7 +416,7 @@ async def get_job_status(
         response = {
             "job_id": job['id'],
             "status": job['status'],
-            "created_at": job['created_at'].isoformat() if job['created_at'] else None
+            "created_at": _serialize_timestamp(job.get('created_at'))
         }
         
         if job['status'] == "completed" and job.get('image_url'):
@@ -421,6 +439,74 @@ async def get_job_status(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch job status"
         )
+
+
+@router.get("/jobs")
+async def get_user_jobs(
+    limit: int = 50,
+    offset: int = 0,
+    user: dict = Depends(get_current_user)
+):
+    """Return recent jobs for the authenticated user."""
+    try:
+        if limit > 100:
+            limit = 100
+        if limit < 1:
+            limit = 1
+        if offset < 0:
+            offset = 0
+
+        jobs = await JobService.get_user_jobs(user_id=user['id'], limit=limit, offset=offset)
+        return jobs
+    except Exception as e:
+        logger.error(f"Failed to fetch jobs for user {user.get('id')}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch jobs"
+        )
+
+
+@router.get("/models")
+async def get_available_models(user: dict = Depends(get_current_user)):
+    """Return models available for generation and current default model."""
+    try:
+        comfyui_service = get_comfyui_service()
+        comfy_models = await comfyui_service.get_available_models()
+
+        env_models = [m.strip() for m in settings.ALLOWED_MODELS.split(",") if m.strip()]
+        models = comfy_models if comfy_models else env_models
+
+        if settings.DEFAULT_MODEL and settings.DEFAULT_MODEL not in models:
+            models = [settings.DEFAULT_MODEL] + models
+
+        return {
+            "models": models,
+            "default_model": settings.DEFAULT_MODEL
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch models: {str(e)}", exc_info=True)
+        return {
+            "models": [settings.DEFAULT_MODEL] if settings.DEFAULT_MODEL else [],
+            "default_model": settings.DEFAULT_MODEL
+        }
+
+
+@router.get("/system/status")
+async def get_system_status(user: dict = Depends(get_current_user)):
+    """Return lightweight backend + ComfyUI status for frontend badges."""
+    try:
+        comfyui_service = get_comfyui_service()
+        comfyui_online = await comfyui_service.health_check()
+        return {
+            "backend_online": True,
+            "comfyui_online": comfyui_online
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch system status: {str(e)}", exc_info=True)
+        return {
+            "backend_online": True,
+            "comfyui_online": False
+        }
 
 
 @router.get("/user_images", response_model=List[ImageResponse])

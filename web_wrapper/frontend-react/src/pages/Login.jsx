@@ -1,142 +1,147 @@
 import React, { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
-const highlights = [
-  'A real account flow backed by FastAPI and Supabase auth',
-  'Personal image gallery and queue history tied to your user',
-  'Persistent light and dark themes with generation defaults',
-]
+export default function Login() {
+  const navigate = useNavigate()
+  const { login, register } = useAuth()
 
-export default function Login({ onLogin, onRegister, authLoading = false }) {
-  const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-  })
-  const [submitting, setSubmitting] = useState(false)
+  const [mode, setMode] = useState('signin')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  function updateField(key, value) {
-    setForm((current) => ({ ...current, [key]: value }))
-  }
 
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
-    setSubmitting(true)
 
-    try {
-      if (mode === 'register') {
-        await onRegister({
-          name: form.name.trim(),
-          email: form.email.trim(),
-          password: form.password,
-        })
-      } else {
-        await onLogin({
-          email: form.email.trim(),
-          password: form.password,
-        })
+    if (!email.trim() || !password.trim()) {
+      setError('Email and password are required.')
+      return
+    }
+
+    if (mode === 'signup') {
+      if (!name.trim()) {
+        setError('Name is required for sign up.')
+        return
       }
-    } catch (submissionError) {
-      setError(submissionError.message)
+      if (password !== confirmPassword) {
+        setError('Password confirmation does not match.')
+        return
+      }
+    }
+
+    setLoading(true)
+    try {
+      if (mode === 'signin') {
+        await login({ email: email.trim(), password })
+      } else {
+        await register({ name: name.trim(), email: email.trim(), password })
+      }
+      navigate('/studio')
+    } catch (requestError) {
+      setError(requestError.message || 'Authentication failed.')
     } finally {
-      setSubmitting(false)
+      setLoading(false)
     }
   }
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-      <aside className="surface-card flex flex-col justify-between">
-        <div>
-          <p className="eyebrow">Account access</p>
-          <h1 className="mt-3 text-4xl font-semibold text-[var(--text-strong)]">Sign in to your image workspace.</h1>
-          <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">
-            The new auth flow stores your credits, queue history, and image archive in one account instead of leaving each page to guess who you are.
-          </p>
-        </div>
-
-        <div className="mt-10 space-y-3">
-          {highlights.map((item) => (
-            <div key={item} className="rounded-[1.5rem] border border-[var(--border-soft)] bg-[var(--panel-muted)] px-4 py-4 text-sm text-[var(--text-soft)]">
-              {item}
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      <div className="surface-card">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="eyebrow">Authentication</p>
-            <h2 className="mt-2 text-3xl font-semibold text-[var(--text-strong)]">
-              {mode === 'login' ? 'Welcome back' : 'Create your account'}
-            </h2>
+    <section className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_1fr]">
+      <article className="hero-panel">
+        <p className="eyebrow">Account access</p>
+        <h1 className="hero-title !text-[clamp(2.2rem,3vw,3.8rem)]">Enter your workspace securely.</h1>
+        <p className="hero-copy">
+          Sign in to manage your private gallery and job history, or create a new account to start generating with starter credits.
+        </p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="stat-tile">
+            <div className="stat-tile__value">100</div>
+            <div className="stat-tile__label">starter credits</div>
           </div>
-
-          <div className="rounded-full border border-[var(--border-soft)] bg-[var(--panel-muted)] p-1">
-            <button type="button" onClick={() => setMode('login')} className={mode === 'login' ? 'segmented-button segmented-button--active' : 'segmented-button'}>
-              Sign in
-            </button>
-            <button type="button" onClick={() => setMode('register')} className={mode === 'register' ? 'segmented-button segmented-button--active' : 'segmented-button'}>
-              Sign up
-            </button>
+          <div className="stat-tile">
+            <div className="stat-tile__value">GPU</div>
+            <div className="stat-tile__label">backed renders</div>
           </div>
         </div>
+      </article>
 
-        <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
-          {mode === 'register' && (
+      <article className="surface-card">
+        <div className="inline-flex rounded-full border border-[var(--border-soft)] bg-[var(--panel-muted)] p-1">
+          <button type="button" onClick={() => setMode('signin')} className={mode === 'signin' ? 'tab-button tab-button--active' : 'tab-button'}>
+            Sign in
+          </button>
+          <button type="button" onClick={() => setMode('signup')} className={mode === 'signup' ? 'tab-button tab-button--active' : 'tab-button'}>
+            Create account
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          {mode === 'signup' && (
             <label className="field">
-              <span className="field__label">Display name</span>
+              <span className="field__label">Name</span>
               <input
-                required
-                value={form.name}
-                onChange={(event) => updateField('name', event.target.value)}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
                 className="field__input"
-                placeholder="Tarek"
+                placeholder="Your display name"
               />
             </label>
           )}
 
           <label className="field">
-            <span className="field__label">Email address</span>
+            <span className="field__label">Email</span>
             <input
-              required
               type="email"
-              value={form.email}
-              onChange={(event) => updateField('email', event.target.value)}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               className="field__input"
-              placeholder="name@example.com"
+              placeholder="name@email.com"
             />
           </label>
 
           <label className="field">
             <span className="field__label">Password</span>
             <input
-              required
               type="password"
-              value={form.password}
-              onChange={(event) => updateField('password', event.target.value)}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               className="field__input"
-              placeholder="At least one strong password"
+              placeholder="Your password"
             />
           </label>
 
+          {mode === 'signup' && (
+            <label className="field">
+              <span className="field__label">Confirm password</span>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="field__input"
+                placeholder="Repeat password"
+              />
+            </label>
+          )}
+
           {error && (
-            <div className="rounded-[1.5rem] border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+            <div className="rounded-2xl border border-rose-500/35 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
               {error}
             </div>
           )}
 
-          <button type="submit" disabled={submitting || authLoading} className="primary-button w-full justify-center">
-            {submitting || authLoading
-              ? 'Working...'
-              : mode === 'login'
-                ? 'Sign in to Imagyn'
-                : 'Create account and start generating'}
+          <button type="submit" disabled={loading} className="primary-button w-full justify-center">
+            {loading ? 'Processing...' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </button>
         </form>
-      </div>
+
+        <p className="mt-5 text-sm text-[var(--text-soft)]">
+          Need to inspect backend endpoints first? <Link to="/" className="link-inline">Return to landing</Link>
+        </p>
+      </article>
     </section>
   )
 }

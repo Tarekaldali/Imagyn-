@@ -3,13 +3,13 @@ Authentication Routes
 Handles user registration and login
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 import logging
 
 from app.config import settings
-from app.utils.supabase_client import supabase_admin
+from app.utils.supabase_client import get_current_user, supabase_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -36,6 +36,15 @@ class AuthResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     user: Optional[dict] = None
+
+
+@router.get("/me")
+async def get_me(user: dict = Depends(get_current_user)):
+    """Return current authenticated user profile"""
+    return {
+        "success": True,
+        "user": user
+    }
 
 
 @router.post("/register", response_model=AuthResponse)

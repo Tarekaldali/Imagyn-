@@ -28,12 +28,20 @@ timeout /t 5 /nobreak >nul
 
 REM Start ComfyUI Backend (Port 8189)
 echo [2/3] Starting ComfyUI Backend (Port 8189)...
-start "ComfyUI Backend (DO NOT CLOSE)" cmd /k "%~dp0.venv\Scripts\python.exe %~dp0main.py --port 8189"
+start "ComfyUI Backend (DO NOT CLOSE)" cmd /k "python %~dp0main.py --port 8189"
 timeout /t 5 /nobreak >nul
 
-REM Start Flask Web Wrapper (Port 8890)
-echo [3/3] Starting Flask Web Wrapper (Port 8890)...
-start "Flask Web Server (DO NOT CLOSE)" cmd /k "cd /d %~dp0web_wrapper && ..\.venv\Scripts\python.exe flask_server.py"
+REM Start Frontend (React Vite) instead of Flask Web Wrapper
+echo [3/3] Starting React Frontend (Vite)
+for /f %%P in ('powershell -NoProfile -Command "(Get-NetTCPConnection -LocalPort 8890 -State Listen -ErrorAction SilentlyContinue ^| Select-Object -ExpandProperty OwningProcess -Unique) -join \" \" "') do (
+    echo Found existing process on port 8890 (PID: %%P). Stopping it...
+    taskkill /PID %%P /F >nul 2>&1
+)
+if exist "%~dp0web_wrapper\frontend-react\package.json" (
+    start "React Frontend (DO NOT CLOSE)" cmd /k "cd /d %~dp0web_wrapper\frontend-react && npm run dev"
+) else (
+    echo React frontend not found at web_wrapper\frontend-react; skipping frontend start.
+)
 timeout /t 3 /nobreak >nul
 
 echo.
@@ -47,12 +55,12 @@ echo Backend API:         http://localhost:8000
 echo Backend API Docs:    http://localhost:8000/docs
 echo ComfyUI Backend:     http://localhost:8189
 echo Web Interface:       http://localhost:8890
-echo Login Page:          http://localhost:8890/login.html
+echo Web App:             http://localhost:8890
 echo.
 echo Press any key to open the web interface...
 pause >nul
 
-start http://localhost:8890/login.html
+start http://localhost:8890
 
 echo.
 echo ========================================
