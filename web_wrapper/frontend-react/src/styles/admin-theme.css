@@ -1,0 +1,209 @@
+.admin-theme {
+  /* namespace placeholder - actual theme variables applied below via attribute selectors */
+}
+
+/* Dark theme overrides (scoped so light mode still works) */
+[data-theme='dark'] {
+  --admin-bg: #071018;
+  --admin-bg-2: #07121a;
+  --admin-panel: rgba(255,255,255,0.03);
+  --admin-panel-2: rgba(255,255,255,0.02);
+  --admin-text-strong: #e6f7ff;
+  --admin-text-soft: #9fb6c8;
+  --admin-accent: #00e6d0;
+  --admin-accent-2: #4dd0e1;
+  --admin-muted: #506067;
+
+  body {
+    background: linear-gradient(180deg, var(--admin-bg) 0%, var(--admin-bg-2) 100%);
+    color: var(--admin-text-strong);
+  }
+
+  .topbar{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .brand__title{ color:var(--admin-accent); font-weight:700 }
+  .brand__subtitle{ color:var(--admin-text-soft) }
+
+  .surface-card, .admin-panel, .hero-panel, .pricing-card, .stat-tile, .admin-plan-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 8px 30px rgba(2,6,10,0.6);
+  }
+
+  .admin-metric__value, .hero-title, .admin-title { color: var(--admin-text-strong) }
+  .admin-metric__hint, .pricing-card__description { color: var(--admin-text-soft) }
+
+  .pricing-card__price{ color: var(--admin-accent); font-weight:700 }
+  .pricing-card__badge{ background: linear-gradient(90deg, rgba(0,230,208,0.08), rgba(77,208,225,0.06)); color:var(--admin-accent-2); padding:6px 10px; border-radius:8px }
+
+  .nav-pill--active{ box-shadow: inset 0 -2px 0 var(--admin-accent); color:var(--admin-accent) }
+
+  .admin-plan-card__head .field__input{ background: transparent; color:var(--admin-text-strong); border:1px dashed rgba(255,255,255,0.03) }
+
+  .admin-panel__header{ display:flex; justify-content:space-between; align-items:center }
+
+  .primary-button{ background: linear-gradient(90deg,var(--admin-accent),var(--admin-accent-2)); color:#041219 }
+  .ghost-button{ border:1px solid rgba(255,255,255,0.04); color:var(--admin-text-soft); background:transparent }
+
+  /* Admin dashboard layout */
+  .admin-shell { display: block; }
+  .admin-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px }
+
+  .admin-metrics { display: grid; gap:18px; grid-template-columns: repeat(4, 1fr); margin-bottom:18px }
+
+  .admin-metric { padding: 18px; border-radius: 1rem; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); }
+  .admin-metric--accent { background: linear-gradient(180deg, rgba(0,230,208,0.06), rgba(77,208,225,0.02)); border-color: rgba(0,230,208,0.12); }
+  .admin-metric__label { color: var(--admin-text-soft); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.14em }
+  .admin-metric__value { font-family: 'Space Grotesk', sans-serif; font-size:2.1rem; font-weight:700; margin-top:8px }
+  .admin-metric__hint { color: var(--admin-text-soft); font-size:0.86rem; margin-top:6px }
+
+  .admin-grid { display: grid; gap:18px; grid-template-columns: 2fr 1fr; grid-auto-rows: minmax(160px, auto); }
+  .admin-panel { padding: 16px; }
+  .admin-panel--wide { grid-column: 1 / -1 }
+
+  .admin-table__row { display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00)); }
+
+  .admin-job-card { display:flex; justify-content:space-between; padding:12px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00)); }
+
+  .admin-panel__title { margin:0; font-size:1.05rem; color:var(--admin-text-strong) }
+
+  .credit-chart { height:180px; border-radius:12px; background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(255,255,255,0.01)); }
+
+  .glass{ background: rgba(255,255,255,0.02); border-radius:12px; border:1px solid rgba(255,255,255,0.03) }
+}
+
+/* Light theme tweaks so admin panels feel coherent with light variables */
+[data-theme='light'] {
+  .brand__title{ color: var(--accent) }
+  .brand__subtitle{ color: var(--text-soft) }
+  .admin-metric__value, .hero-title, .admin-title { color: var(--text-strong) }
+  .admin-panel { background: var(--panel); }
+}
+
+/* Use theme variables so styles respect light/dark themes */
+.brand__title{ color:var(--accent); font-weight:700 }
+.brand__subtitle{ color:var(--text-soft) }
+
+.surface-card, .admin-panel, .hero-panel, .pricing-card, .stat-tile, .admin-plan-card, .library-card {
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 1.6rem;
+  box-shadow: var(--shadow);
+}
+
+.admin-metric__value, .hero-title, .admin-title { color: var(--text-strong) }
+.admin-metric__hint, .pricing-card__description { color: var(--text-soft) }
+
+.pricing-card__price{ color: var(--accent); font-weight:700 }
+.pricing-card__badge{ background: linear-gradient(90deg, rgba(0,230,208,0.08), rgba(77,208,225,0.06)); color:var(--accent-2); padding:6px 10px; border-radius:8px }
+
+.nav-pill--active{ box-shadow: inset 0 -2px 0 var(--accent); color:var(--accent) }
+
+.admin-plan-card__head .field__input{ background: transparent; color:var(--text-strong); border:1px dashed var(--border-soft) }
+
+.admin-panel__header{ display:flex; justify-content:space-between; align-items:center }
+
+.primary-button{ background: linear-gradient(90deg,var(--accent),var(--accent-2)); color:#041219 }
+.ghost-button{ border:1px solid var(--border-soft); color:var(--text-soft); background:transparent }
+
+.admin-grid{ grid-template-columns: repeat(2, 1fr); }
+
+/* small helpers to match the owner_admin_dashboard aesthetic */
+.glass{ background: var(--panel); border-radius:12px; border:1px solid var(--border-soft) }
+
+/* Studio layout: sidebar with prompt & controls, main preview area */
+.studio-shell {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .studio-shell { grid-template-columns: 1fr; }
+}
+
+.studio-sidebar {
+  padding: 18px;
+  border-radius: 1.25rem;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 560px;
+}
+
+.studio-form { display:flex; flex-direction:column; gap:12px; flex:1 }
+
+.prompt-suggestions { display:flex; gap:8px; flex-wrap:wrap }
+.prompt-suggestions .nav-chip { padding:8px 12px; background:var(--panel-muted); border-radius:999px; color:var(--text-soft) }
+
+.studio-actions { display:flex; gap:12px; align-items:center; margin-top:6px }
+
+.studio-main { display:flex; flex-direction:column; gap:16px }
+
+.studio-preview { padding: 0; display:flex; flex-direction:column; min-height:560px; overflow:hidden }
+.studio-preview__header { padding: 16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-soft) }
+.studio-preview__body { padding: 20px; display:flex; align-items:center; justify-content:center; min-height:420px }
+
+.preview-image { max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; box-shadow: 0 20px 40px rgba(2,6,10,0.15) }
+.preview-placeholder { display:grid; place-items:center; padding:40px; text-align:center; color:var(--text-soft) }
+
+.thumbnail-grid { margin-top:12px; display:grid; grid-template-columns: repeat(3, 1fr); gap:12px }
+.thumbnail { width:100%; aspect-ratio:1/1; border-radius:10px; object-fit:cover; cursor:pointer; border:1px solid var(--border-soft) }
+
+.active-job { padding:8px; border-radius:8px; background:var(--panel-muted); display:flex; justify-content:space-between; align-items:center; gap:10px }
+
+.generation-badge { padding:6px 10px; border-radius:999px; background:var(--accent); color:#041219; font-weight:700 }
+
+.studio-sidebar__footer { margin-top:8px }
+
+/* Admin section layout and headers */
+.admin-section { margin: 22px 0; }
+.admin-section__header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px }
+.admin-section__header > div { display:flex; flex-direction:column }
+.admin-section__title { margin: 4px 0 0; font-size:1.4rem; color: var(--text-strong) }
+
+/* Ensure light theme surfaces use variables (helps fix dark artifacts in light mode) */
+[data-theme='light'] .surface-card,
+[data-theme='light'] .admin-panel,
+[data-theme='light'] .hero-panel,
+[data-theme='light'] .pricing-card,
+[data-theme='light'] .stat-tile,
+[data-theme='light'] .admin-plan-card,
+[data-theme='light'] .library-card {
+  background: var(--panel);
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow);
+  color: var(--text-strong);
+}
+
+
+/* Prompt Library cards */
+.library-card {
+  border-radius: 1.4rem;
+  padding: 1.25rem;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--panel-soft);
+  color: var(--text-strong);
+}
+
+.library-card__prompt {
+  color: var(--text-soft);
+  max-height: 6.6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.library-card__actions {
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+

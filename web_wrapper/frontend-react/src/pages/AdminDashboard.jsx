@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { formatCurrency, formatDateTime, formatDuration } from '../lib/formatters'
 
 export default function AdminDashboard({
@@ -9,8 +9,12 @@ export default function AdminDashboard({
   onToast,
   onUpdatePlan,
   plans = [],
+  onCreatePlan,
   requestConfirm,
 }) {
+  const [creating, setCreating] = useState(false)
+  const [newPlan, setNewPlan] = useState({ id: '', name: '', price: 0, credits: 0, badge: '', description: '', features: [] })
+
   const stats = adminOverview?.stats || {}
   const users = adminOverview?.users || []
   const recentJobs = useMemo(() => jobs.slice(0, 6), [jobs])
@@ -25,8 +29,17 @@ export default function AdminDashboard({
 
     if (approved) {
       onDeletePlan(planId)
-      onToast(`${planName} removed from the pricing page.`, 'success', 'Plan updated')
+      onToast?.(`${planName} removed from the pricing page.`, 'success', 'Plan updated')
     }
+  }
+
+  async function handleCreate() {
+    const id = newPlan.id || `plan_${Date.now()}`
+    const planToCreate = { ...newPlan, id }
+    onCreatePlan?.(planToCreate)
+    onToast?.(`${newPlan.name} created.`, 'success', 'Plan created')
+    setNewPlan({ id: '', name: '', price: 0, credits: 0, badge: '', description: '', features: [] })
+    setCreating(false)
   }
 
   return (
@@ -36,107 +49,56 @@ export default function AdminDashboard({
           <p className="eyebrow">Owner command center</p>
           <h1 className="admin-title">Manage plans, users, and system health from one dashboard.</h1>
         </div>
-        <button type="button" onClick={onRefresh} className="secondary-button">Refresh overview</button>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setCreating(true)} className="primary-button">Add plan</button>
+          <button type="button" onClick={onRefresh} className="secondary-button">Refresh overview</button>
+        </div>
       </div>
 
-      <div className="admin-metrics">
-        <article className="admin-metric">
-          <p className="admin-metric__label">Total users</p>
-          <p className="admin-metric__value">{stats.total_users || 0}</p>
-          <p className="admin-metric__hint">{stats.admin_users || 0} admin accounts</p>
-        </article>
-        <article className="admin-metric">
-          <p className="admin-metric__label">Active jobs</p>
-          <p className="admin-metric__value">{stats.active_jobs || 0}</p>
-          <p className="admin-metric__hint">{stats.completed_jobs || 0} completed renders</p>
-        </article>
-        <article className="admin-metric">
-          <p className="admin-metric__label">Credit balance</p>
-          <p className="admin-metric__value">{stats.credit_balance_total || 0}</p>
-          <p className="admin-metric__hint">Total user credits across the site</p>
-        </article>
-        <article className="admin-metric admin-metric--accent">
-          <p className="admin-metric__label">Recent images</p>
-          <p className="admin-metric__value">{stats.recent_images || 0}</p>
-          <p className="admin-metric__hint">{stats.failed_jobs || 0} failed jobs need review</p>
-        </article>
-      </div>
-
-      <div className="admin-grid">
-        <section className="admin-panel">
-          <div className="admin-panel__header">
-            <div>
-              <p className="eyebrow">Website plans</p>
-              <h2 className="admin-panel__title">Pricing and credit tiers</h2>
-            </div>
+      <section className="admin-section" id="overview">
+        <div className="admin-section__header">
+          <div>
+            <p className="eyebrow">Overview</p>
+            <h2 className="admin-section__title">System summary</h2>
           </div>
+        </div>
 
-          <div className="admin-plan-list">
-            {plans.map((plan) => (
-              <article key={plan.id} className="admin-plan-card">
-                <div className="admin-plan-card__head">
-                  <input
-                    value={plan.name}
-                    onChange={(event) => onUpdatePlan(plan.id, { name: event.target.value })}
-                    className="field__input"
-                  />
-                  <button type="button" onClick={() => handleDeletePlan(plan.id, plan.name)} className="ghost-button">
-                    Delete
-                  </button>
-                </div>
+        <div className="admin-metrics">
+          <article className="admin-metric">
+            <p className="admin-metric__label">Total users</p>
+            <p className="admin-metric__value">{stats.total_users || 0}</p>
+            <p className="admin-metric__hint">{stats.admin_users || 0} admin accounts</p>
+          </article>
+          <article className="admin-metric">
+            <p className="admin-metric__label">Active jobs</p>
+            <p className="admin-metric__value">{stats.active_jobs || 0}</p>
+            <p className="admin-metric__hint">{stats.completed_jobs || 0} completed renders</p>
+          </article>
+          <article className="admin-metric">
+            <p className="admin-metric__label">Credit balance</p>
+            <p className="admin-metric__value">{stats.credit_balance_total || 0}</p>
+            <p className="admin-metric__hint">Total user credits across the site</p>
+          </article>
+          <article className="admin-metric admin-metric--accent">
+            <p className="admin-metric__label">Recent images</p>
+            <p className="admin-metric__value">{stats.recent_images || 0}</p>
+            <p className="admin-metric__hint">{stats.failed_jobs || 0} failed jobs need review</p>
+          </article>
+        </div>
+      </section>
 
-                <div className="grid gap-3 md:grid-cols-3">
-                  <label className="field">
-                    <span className="field__label">Price</span>
-                    <input
-                      type="number"
-                      value={plan.price}
-                      onChange={(event) => onUpdatePlan(plan.id, { price: Number(event.target.value) })}
-                      className="field__input"
-                    />
-                  </label>
-                  <label className="field">
-                    <span className="field__label">Credits</span>
-                    <input
-                      type="number"
-                      value={plan.credits}
-                      onChange={(event) => onUpdatePlan(plan.id, { credits: Number(event.target.value) })}
-                      className="field__input"
-                    />
-                  </label>
-                  <label className="field">
-                    <span className="field__label">Badge</span>
-                    <input
-                      value={plan.badge}
-                      onChange={(event) => onUpdatePlan(plan.id, { badge: event.target.value })}
-                      className="field__input"
-                    />
-                  </label>
-                </div>
-
-                <label className="field">
-                  <span className="field__label">Summary</span>
-                  <input
-                    value={plan.description}
-                    onChange={(event) => onUpdatePlan(plan.id, { description: event.target.value })}
-                    className="field__input"
-                  />
-                </label>
-              </article>
-            ))}
+      {/* Users section */}
+      <section className="admin-section" id="users">
+        <div className="admin-section__header">
+          <div>
+            <p className="eyebrow">Recent users</p>
+            <h2 className="admin-section__title">Account activity snapshot</h2>
           </div>
-        </section>
+        </div>
 
-        <section className="admin-panel">
-          <div className="admin-panel__header">
-            <div>
-              <p className="eyebrow">Recent users</p>
-              <h2 className="admin-panel__title">Account activity snapshot</h2>
-            </div>
-          </div>
-
+        <div className="admin-panel">
           <div className="admin-table">
-            {users.slice(0, 7).map((user) => (
+            {users.slice(0, 10).map((user) => (
               <article key={user.id} className="admin-table__row">
                 <div>
                   <p className="admin-table__name">{user.name}</p>
@@ -148,55 +110,160 @@ export default function AdminDashboard({
                 </div>
               </article>
             ))}
+            {users.length === 0 && <div className="text-sm text-[var(--text-soft)]">No users found</div>}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="admin-panel admin-panel--wide">
-          <div className="admin-panel__header">
-            <div>
-              <p className="eyebrow">Recent jobs</p>
-              <h2 className="admin-panel__title">Generation operations</h2>
+      {/* Analysis section */}
+      <section className="admin-section" id="analysis">
+        <div className="admin-section__header">
+          <div>
+            <p className="eyebrow">Analysis</p>
+            <h2 className="admin-section__title">Generation operations and insights</h2>
+          </div>
+        </div>
+
+        <div className="admin-grid">
+          <section className="admin-panel admin-panel--wide">
+            <div className="admin-panel__header">
+              <div>
+                <p className="eyebrow">Credit Consumption</p>
+                <h2 className="admin-panel__title">7-day platform delta</h2>
+              </div>
             </div>
-          </div>
+            <div className="credit-chart" aria-hidden>
+              {/* Placeholder for charts - can integrate Chart.js here */}
+            </div>
+          </section>
 
-          <div className="admin-jobs">
-            {recentJobs.map((job) => (
-              <article key={job.id} className="admin-job-card">
-                <div className="admin-job-card__main">
-                  <strong>{job.model_name || 'Default model'}</strong>
-                  <span>{job.prompt}</span>
+          <section className="admin-panel">
+            <div className="admin-panel__header">
+              <div>
+                <p className="eyebrow">Recent jobs</p>
+                <h2 className="admin-panel__title">Generation operations</h2>
+              </div>
+            </div>
+
+            <div className="admin-jobs">
+              {recentJobs.map((job) => (
+                <article key={job.id} className="admin-job-card">
+                  <div className="admin-job-card__main">
+                    <strong>{job.model_name || 'Default model'}</strong>
+                    <span>{job.prompt}</span>
+                  </div>
+                  <div className="admin-job-card__meta">
+                    <span>{job.status}</span>
+                    <span>{formatDuration(job.gpu_time)}</span>
+                    <span>{formatDateTime(job.created_at)}</span>
+                  </div>
+                </article>
+              ))}
+              {recentJobs.length === 0 && <div className="text-sm text-[var(--text-soft)]">No recent jobs</div>}
+            </div>
+          </section>
+        </div>
+      </section>
+
+      {/* Plans section */}
+      <section className="admin-section" id="plans">
+        <div className="admin-section__header">
+          <div>
+            <p className="eyebrow">Website plans</p>
+            <h2 className="admin-section__title">Pricing and credit tiers</h2>
+          </div>
+          <div>
+            <button type="button" className="primary-button" onClick={() => setCreating(true)}>Add plan</button>
+          </div>
+        </div>
+
+        <div className="admin-panel">
+          <div className="admin-plan-list">
+            {creating && (
+              <article className="admin-plan-card admin-plan-card--new">
+                <div className="admin-plan-card__head">
+                  <input
+                    placeholder="Plan name"
+                    value={newPlan.name}
+                    onChange={(e) => setNewPlan((p) => ({ ...p, name: e.target.value }))}
+                    className="field__input"
+                  />
+                  <div>
+                    <button type="button" onClick={handleCreate} className="primary-button">Create</button>
+                    <button type="button" onClick={() => setCreating(false)} className="ghost-button">Cancel</button>
+                  </div>
                 </div>
-                <div className="admin-job-card__meta">
-                  <span>{job.status}</span>
-                  <span>{formatDuration(job.gpu_time)}</span>
-                  <span>{formatDateTime(job.created_at)}</span>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  <label className="field">
+                    <span className="field__label">Price</span>
+                    <input type="number" value={newPlan.price} onChange={(e) => setNewPlan((p) => ({ ...p, price: Number(e.target.value) }))} className="field__input" />
+                  </label>
+                  <label className="field">
+                    <span className="field__label">Credits</span>
+                    <input type="number" value={newPlan.credits} onChange={(e) => setNewPlan((p) => ({ ...p, credits: Number(e.target.value) }))} className="field__input" />
+                  </label>
+                  <label className="field">
+                    <span className="field__label">Badge</span>
+                    <input value={newPlan.badge} onChange={(e) => setNewPlan((p) => ({ ...p, badge: e.target.value }))} className="field__input" />
+                  </label>
                 </div>
+
+                <label className="field">
+                  <span className="field__label">Summary</span>
+                  <input value={newPlan.description} onChange={(e) => setNewPlan((p) => ({ ...p, description: e.target.value }))} className="field__input" />
+                </label>
               </article>
-            ))}
-          </div>
-        </section>
+            )}
 
-        <section className="admin-panel">
-          <div className="admin-panel__header">
-            <div>
-              <p className="eyebrow">Business summary</p>
-              <h2 className="admin-panel__title">Plan value preview</h2>
-            </div>
-          </div>
-
-          <div className="space-y-3">
             {plans.map((plan) => (
-              <article key={plan.id} className="admin-summary-card">
-                <div>
-                  <p className="admin-table__name">{plan.name}</p>
-                  <p className="admin-table__meta">{plan.credits} credits</p>
+              <article key={plan.id} className="admin-plan-card">
+                <div className="admin-plan-card__head">
+                  <input value={plan.name} onChange={(event) => onUpdatePlan(plan.id, { name: event.target.value })} className="field__input" />
+                  <button type="button" onClick={() => handleDeletePlan(plan.id, plan.name)} className="ghost-button">Delete</button>
                 </div>
-                <strong>{formatCurrency(plan.price)}</strong>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  <label className="field">
+                    <span className="field__label">Price</span>
+                    <input type="number" value={plan.price} onChange={(event) => onUpdatePlan(plan.id, { price: Number(event.target.value) })} className="field__input" />
+                  </label>
+                  <label className="field">
+                    <span className="field__label">Credits</span>
+                    <input type="number" value={plan.credits} onChange={(event) => onUpdatePlan(plan.id, { credits: Number(event.target.value) })} className="field__input" />
+                  </label>
+                  <label className="field">
+                    <span className="field__label">Badge</span>
+                    <input value={plan.badge} onChange={(event) => onUpdatePlan(plan.id, { badge: event.target.value })} className="field__input" />
+                  </label>
+                </div>
+
+                <label className="field">
+                  <span className="field__label">Summary</span>
+                  <input value={plan.description} onChange={(event) => onUpdatePlan(plan.id, { description: event.target.value })} className="field__input" />
+                </label>
               </article>
             ))}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      {/* Operation section */}
+      <section className="admin-section" id="operation">
+        <div className="admin-section__header">
+          <div>
+            <p className="eyebrow">Operations</p>
+            <h2 className="admin-section__title">Owner command center</h2>
+          </div>
+        </div>
+
+        <div className="admin-panel">
+          <div className="flex gap-3">
+            <button type="button" className="primary-button" onClick={() => setCreating(true)}>Add plan</button>
+            <button type="button" className="secondary-button" onClick={onRefresh}>Refresh overview</button>
+          </div>
+        </div>
+      </section>
     </section>
   )
 }

@@ -23,7 +23,7 @@ export default function Header({
     { to: '/studio', label: 'Studio' },
     { to: '/library', label: 'Prompt Library' },
     { to: '/gallery', label: 'Gallery' },
-    { to: '/credits', label: 'Credits' },
+    { to: '/pricing', label: 'Pricing' },
     { to: '/profile', label: 'Profile' },
   ]
 

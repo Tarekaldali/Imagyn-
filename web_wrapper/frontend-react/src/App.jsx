@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import Studio from './pages/Studio'
 import GalleryPage from './pages/GalleryPage'
 import BuyCredits from './pages/BuyCredits'
+import Checkout from './pages/Checkout'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import PromptLibrary from './pages/PromptLibrary'
@@ -332,6 +333,70 @@ function AppShell() {
     setPlans((current) => current.map((plan) => (plan.id === planId ? { ...plan, ...patch } : plan)))
   }, [])
 
+  const handlePlanCreate = useCallback((plan) => {
+    setPlans((current) => [...current, plan])
+  }, [])
+
+  const handlePurchase = useCallback(async (planId) => {
+    if (!token) {
+      pushToast('Please sign in to complete purchases.', 'warning', 'Billing')
+      return
+    }
+
+    try {
+      await apiRequest('/api/checkout', { method: 'POST', token, body: { plan_id: planId } })
+      await refreshUser(token)
+      pushToast('Purchase completed. Welcome!', 'success', 'Billing')
+    } catch (error) {
+      // Fallback / simulate
+      pushToast(error.message || 'Purchase failed. Please try again later.', 'warning', 'Billing')
+    }
+  }, [pushToast, refreshUser, token])
+
+  const handleUpdateUser = useCallback(async (patch) => {
+    if (!token) {
+      pushToast('Please sign in to update your profile.', 'warning', 'Profile')
+      return
+    }
+
+    try {
+      await apiRequest('/api/auth/update', { method: 'POST', token, body: patch })
+      await refreshUser(token)
+      pushToast('Profile updated.', 'success', 'Profile')
+    } catch (error) {
+      pushToast(error.message || 'Unable to update profile on the server.', 'warning', 'Profile')
+    }
+  }, [pushToast, refreshUser, token])
+
+  const handleChangePassword = useCallback(async ({ oldPassword, newPassword }) => {
+    if (!token) {
+      pushToast('Please sign in to change your password.', 'warning', 'Profile')
+      return
+    }
+
+    try {
+      await apiRequest('/api/auth/change_password', { method: 'POST', token, body: { old_password: oldPassword, new_password: newPassword } })
+      pushToast('Password changed successfully.', 'success', 'Profile')
+    } catch (error) {
+      pushToast(error.message || 'Unable to change password.', 'warning', 'Profile')
+    }
+  }, [pushToast, token])
+
+  const handleUpdateBilling = useCallback(async (billing) => {
+    if (!token) {
+      pushToast('Please sign in to update billing.', 'warning', 'Billing')
+      return
+    }
+
+    try {
+      await apiRequest('/api/billing', { method: 'POST', token, body: billing })
+      await refreshUser(token)
+      pushToast('Billing updated.', 'success', 'Billing')
+    } catch (error) {
+      pushToast(error.message || 'Unable to update billing.', 'warning', 'Billing')
+    }
+  }, [pushToast, refreshUser, token])
+
   const handlePlanDelete = useCallback((planId) => {
     setPlans((current) => current.filter((plan) => plan.id !== planId))
   }, [])
@@ -398,7 +463,7 @@ function AppShell() {
             )}
           />
           <Route
-            path="/credits"
+            path="/pricing"
             element={(
               <ProtectedRoute>
                 <BuyCredits plans={plans} user={user} />
@@ -406,10 +471,26 @@ function AppShell() {
             )}
           />
           <Route
+            path="/checkout"
+            element={(
+              <ProtectedRoute>
+                <Checkout onPurchase={handlePurchase} plans={plans} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
             path="/profile"
             element={(
               <ProtectedRoute>
-                <Profile images={images} jobs={jobs} user={user} />
+                <Profile
+                  images={images}
+                  jobs={jobs}
+                  user={user}
+                  onUpdateUser={handleUpdateUser}
+                  onChangePassword={handleChangePassword}
+                  onUpdateBilling={handleUpdateBilling}
+                  onToast={pushToast}
+                />
               </ProtectedRoute>
             )}
           />
@@ -438,6 +519,7 @@ function AppShell() {
                     onToast={pushToast}
                     onUpdatePlan={handlePlanUpdate}
                     plans={plans}
+                    onCreatePlan={handlePlanCreate}
                     requestConfirm={requestConfirm}
                   />
                 </AdminRoute>
