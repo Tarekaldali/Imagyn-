@@ -36,7 +36,6 @@ export default function Sidebar({ onGenerate }) {
       })
     } catch (error) {
       console.error(error)
-      alert('Image generation failed. Check the backend connection and try again.')
     } finally {
       setLoading(false)
     }

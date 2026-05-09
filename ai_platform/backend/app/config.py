@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     R2_PUBLIC_URL: str
     
     # ComfyUI Configuration
-    COMFYUI_URL: str = "http://localhost:8188"
+    COMFYUI_URL: str = "http://localhost:8189"
     COMFYUI_TIMEOUT: int = 300  # seconds
     
     # Application Configuration

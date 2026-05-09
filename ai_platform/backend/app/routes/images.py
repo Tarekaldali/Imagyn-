@@ -492,7 +492,7 @@ async def get_available_models(user: dict = Depends(get_current_user)):
 
 
 @router.get("/system/status")
-async def get_system_status(user: dict = Depends(get_current_user)):
+async def get_system_status():
     """Return lightweight backend + ComfyUI status for frontend badges."""
     try:
         comfyui_service = get_comfyui_service()

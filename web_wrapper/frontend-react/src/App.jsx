@@ -1,17 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import Header from './components/Header'
+import ToastStack from './components/ToastStack'
+import ConfirmDialog from './components/ConfirmDialog'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Studio from './pages/Studio'
 import GalleryPage from './pages/GalleryPage'
-import History from './pages/History'
 import BuyCredits from './pages/BuyCredits'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+import PromptLibrary from './pages/PromptLibrary'
+import AdminDashboard from './pages/AdminDashboard'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { apiRequest } from './api/client'
+
+const PLANS_STORAGE_KEY = 'imagyn_pricing_plans'
 
 const defaultPreferences = {
   negative_prompt: '',
@@ -22,6 +27,46 @@ const defaultPreferences = {
   cfg_scale: 7,
   sampler: 'dpmpp_2m',
   seed: -1,
+}
+
+const defaultPlans = [
+  {
+    id: 'starter',
+    name: 'Starter Access',
+    badge: 'Launch tier',
+    price: 9,
+    credits: 120,
+    description: 'A compact credit pack for testing ideas and building daily visual concepts.',
+    features: ['Fast onboarding credits', 'Private gallery storage', 'Great for light exploration'],
+  },
+  {
+    id: 'pro',
+    name: 'Pro Studio',
+    badge: 'Most popular',
+    price: 29,
+    credits: 450,
+    description: 'Balanced pricing for creators who generate often and need room to iterate.',
+    features: ['Better value per render', 'Ideal for campaigns and revisions', 'Recommended for serious use'],
+    highlight: true,
+  },
+  {
+    id: 'scale',
+    name: 'Scale Team',
+    badge: 'Heavy usage',
+    price: 79,
+    credits: 1400,
+    description: 'High-volume credit pool for agencies, teams, and production-heavy workflows.',
+    features: ['Largest credit reserve', 'Strongest per-credit value', 'Fits team-level output'],
+  },
+]
+
+function readStoredPlans() {
+  try {
+    const raw = localStorage.getItem(PLANS_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : defaultPlans
+  } catch (error) {
+    return defaultPlans
+  }
 }
 
 function wait(ms) {
@@ -53,17 +98,67 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+function AdminRoute({ children }) {
+  const { user } = useAuth()
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/studio" replace />
+  }
+
+  return children
+}
+
 function AppShell() {
+  const navigate = useNavigate()
   const { authLoading, isAuthenticated, logout, refreshUser, token, user } = useAuth()
   const [images, setImages] = useState([])
   const [jobs, setJobs] = useState([])
   const [models, setModels] = useState([])
   const [workspaceLoading, setWorkspaceLoading] = useState(false)
   const [systemStatus, setSystemStatus] = useState({ backend_online: true, comfyui_online: false })
-  const [notice, setNotice] = useState('')
   const [preferences, setPreferences] = useState(defaultPreferences)
+  const [toasts, setToasts] = useState([])
+  const [dialog, setDialog] = useState({ open: false })
+  const [plans, setPlans] = useState(() => readStoredPlans())
+  const [adminOverview, setAdminOverview] = useState(null)
+  const [studioPrompt, setStudioPrompt] = useState('')
 
   const defaultModel = useMemo(() => models[0] || '', [models])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PLANS_STORAGE_KEY, JSON.stringify(plans))
+    } catch (error) {}
+  }, [plans])
+
+  const dismissToast = useCallback((id) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id))
+  }, [])
+
+  const pushToast = useCallback((message, type = 'info', title = 'Notice') => {
+    const nextToast = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title,
+      message,
+      type,
+    }
+    setToasts((current) => [...current, nextToast])
+  }, [])
+
+  const requestConfirm = useCallback((options) => new Promise((resolve) => {
+    setDialog({
+      open: true,
+      ...options,
+      onResolve: resolve,
+    })
+  }), [])
+
+  const closeDialog = useCallback((approved) => {
+    setDialog((current) => {
+      current.onResolve?.(approved)
+      return { open: false }
+    })
+  }, [])
 
   const loadWorkspace = useCallback(async () => {
     if (!token) {
@@ -95,30 +190,56 @@ function AppShell() {
         comfyui_online: Boolean(statusPayload?.comfyui_online),
       })
     } catch (error) {
-      setNotice(error.message || 'Failed to load workspace data.')
+      pushToast(error.message || 'Failed to load workspace data.', 'warning', 'Workspace')
     } finally {
       setWorkspaceLoading(false)
     }
-  }, [token])
+  }, [pushToast, token])
+
+  const loadPublicStatus = useCallback(async () => {
+    try {
+      const statusPayload = await apiRequest('/api/system/status')
+      setSystemStatus({
+        backend_online: Boolean(statusPayload?.backend_online ?? true),
+        comfyui_online: Boolean(statusPayload?.comfyui_online),
+      })
+    } catch (error) {
+      setSystemStatus({ backend_online: true, comfyui_online: false })
+    }
+  }, [])
+
+  const loadAdminOverview = useCallback(async () => {
+    if (!token || user?.role !== 'admin') {
+      setAdminOverview(null)
+      return
+    }
+
+    try {
+      const payload = await apiRequest('/api/admin/overview', { token })
+      setAdminOverview(payload)
+    } catch (error) {
+      pushToast(error.message || 'Failed to load admin overview.', 'warning', 'Admin')
+    }
+  }, [pushToast, token, user?.role])
 
   useEffect(() => {
     if (!token) {
       setImages([])
       setJobs([])
       setModels([])
-      setSystemStatus({ backend_online: true, comfyui_online: false })
+      setAdminOverview(null)
+      loadPublicStatus()
       return
     }
+
     loadWorkspace()
-  }, [loadWorkspace, token])
+  }, [loadPublicStatus, loadWorkspace, token])
 
   useEffect(() => {
-    if (!notice) {
-      return undefined
+    if (token && user?.role === 'admin') {
+      loadAdminOverview()
     }
-    const timer = setTimeout(() => setNotice(''), 5000)
-    return () => clearTimeout(timer)
-  }, [notice])
+  }, [loadAdminOverview, token, user?.role])
 
   const monitorJob = useCallback(async (jobId) => {
     if (!token || !jobId) {
@@ -132,20 +253,20 @@ function AppShell() {
         setJobs((current) => current.map((job) => (job.id === jobId ? { ...job, ...statusPayload } : job)))
 
         if (statusPayload.status === 'completed' || statusPayload.status === 'failed') {
-          await Promise.all([loadWorkspace(), refreshUser(token)])
+          await Promise.all([loadWorkspace(), refreshUser(token), loadAdminOverview()])
           if (statusPayload.status === 'completed') {
-            setNotice('Image generation completed.')
+            pushToast('Image generation completed and saved to your gallery.', 'success', 'Render complete')
           } else {
-            setNotice(statusPayload.error || 'Generation failed.')
+            pushToast(statusPayload.error || 'Generation failed.', 'warning', 'Render failed')
           }
           return
         }
       } catch (error) {
-        setNotice(error.message || 'Failed to sync job status.')
+        pushToast(error.message || 'Failed to sync job status.', 'warning', 'Queue sync')
         return
       }
     }
-  }, [loadWorkspace, refreshUser, token])
+  }, [loadAdminOverview, loadWorkspace, pushToast, refreshUser, token])
 
   const handleGenerate = useCallback(async (payload) => {
     if (!token) {
@@ -167,12 +288,24 @@ function AppShell() {
     }
 
     setJobs((current) => [optimisticJob, ...current])
+    pushToast('Generation queued on the GPU backend.', 'info', 'Queued')
     monitorJob(response.job_id)
     refreshUser(token).catch(() => {})
-  }, [monitorJob, refreshUser, token])
+  }, [monitorJob, pushToast, refreshUser, token])
 
   const handleDeleteImage = useCallback(async (imageId) => {
     if (!token) {
+      return
+    }
+
+    const approved = await requestConfirm({
+      eyebrow: 'Delete image',
+      title: 'Remove this image from your gallery?',
+      message: 'The image record and stored asset will be removed for this account.',
+      confirmLabel: 'Delete image',
+    })
+
+    if (!approved) {
       return
     }
 
@@ -182,11 +315,26 @@ function AppShell() {
         token,
       })
       setImages((current) => current.filter((image) => image.id !== imageId))
-      setNotice('Image deleted.')
+      pushToast('Image deleted successfully.', 'success', 'Gallery updated')
+      loadAdminOverview()
     } catch (error) {
-      setNotice(error.message || 'Unable to delete image.')
+      pushToast(error.message || 'Unable to delete image.', 'warning', 'Delete failed')
     }
-  }, [token])
+  }, [loadAdminOverview, pushToast, requestConfirm, token])
+
+  const handleUsePrompt = useCallback((prompt) => {
+    setStudioPrompt(prompt)
+    pushToast('Prompt moved into the Studio composer.', 'success', 'Prompt ready')
+    navigate('/studio')
+  }, [navigate, pushToast])
+
+  const handlePlanUpdate = useCallback((planId, patch) => {
+    setPlans((current) => current.map((plan) => (plan.id === planId ? { ...plan, ...patch } : plan)))
+  }, [])
+
+  const handlePlanDelete = useCallback((planId) => {
+    setPlans((current) => current.filter((plan) => plan.id !== planId))
+  }, [])
 
   const activeJobs = jobs.filter((job) => job.status === 'pending' || job.status === 'processing')
 
@@ -200,15 +348,10 @@ function AppShell() {
         onLogout={logout}
       />
 
-      {notice && (
-        <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 xl:px-8">
-          <div className="rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--text-strong)]">
-            {notice}
-          </div>
-        </div>
-      )}
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmDialog dialog={dialog} onCancel={() => closeDialog(false)} onConfirm={() => closeDialog(true)} />
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-6 sm:px-6 xl:px-8">
+      <main className="mx-auto w-full max-w-[1440px] px-4 pb-12 pt-6 sm:px-6 xl:px-8">
         <Routes>
           <Route path="/" element={isAuthenticated ? <Navigate to="/studio" replace /> : <Landing />} />
           <Route path="/login" element={isAuthenticated ? <Navigate to="/studio" replace /> : <Login />} />
@@ -219,6 +362,7 @@ function AppShell() {
                 <Studio
                   defaultModel={defaultModel}
                   images={images}
+                  injectedPrompt={studioPrompt}
                   jobs={jobs}
                   models={models}
                   onGenerate={handleGenerate}
@@ -231,6 +375,15 @@ function AppShell() {
               </ProtectedRoute>
             )}
           />
+          <Route
+            path="/library"
+            element={(
+              <ProtectedRoute>
+                <PromptLibrary onUsePrompt={handleUsePrompt} onToast={pushToast} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route path="/history" element={<Navigate to="/library" replace />} />
           <Route
             path="/gallery"
             element={(
@@ -245,18 +398,10 @@ function AppShell() {
             )}
           />
           <Route
-            path="/history"
-            element={(
-              <ProtectedRoute>
-                <History jobs={jobs} loading={workspaceLoading} onRefresh={loadWorkspace} />
-              </ProtectedRoute>
-            )}
-          />
-          <Route
             path="/credits"
             element={(
               <ProtectedRoute>
-                <BuyCredits user={user} />
+                <BuyCredits plans={plans} user={user} />
               </ProtectedRoute>
             )}
           />
@@ -277,6 +422,25 @@ function AppShell() {
                   onPreferencesChange={setPreferences}
                   systemStatus={systemStatus}
                 />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin"
+            element={(
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AdminDashboard
+                    adminOverview={adminOverview}
+                    jobs={jobs}
+                    onDeletePlan={handlePlanDelete}
+                    onRefresh={loadAdminOverview}
+                    onToast={pushToast}
+                    onUpdatePlan={handlePlanUpdate}
+                    plans={plans}
+                    requestConfirm={requestConfirm}
+                  />
+                </AdminRoute>
               </ProtectedRoute>
             )}
           />

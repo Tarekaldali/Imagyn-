@@ -158,19 +158,12 @@ app.include_router(
     tags=["Authentication"]
 )
 
-# Include user management routes
-# app.include_router(
-#     users.router,
-#     prefix="/api/users",
-#     tags=["Users"]
-# )
-
 # Include admin routes
-# app.include_router(
-#     admin.router,
-#     prefix="/api/admin",
-#     tags=["Admin"]
-# )
+from app.routes import admin
+app.include_router(
+    admin.router,
+    tags=["Admin"]
+)
 
 
 # ============================================
