@@ -38,7 +38,6 @@ export default function Header({
           <BrandMark />
           <div>
             <p className="brand__title">Imagyn</p>
-            <p className="brand__subtitle">Visual Ops Console</p>
           </div>
         </Link>
 
@@ -57,17 +56,9 @@ export default function Header({
         )}
 
         <div className="topbar__actions">
-          <div className="status-chip">
-            <span className={`status-dot ${systemStatus?.comfyui_online ? 'status-dot--up' : 'status-dot--down'}`} />
-            <span>{systemStatus?.comfyui_online ? 'GPU online' : 'GPU offline'}</span>
-          </div>
+          
 
-          {isAuthenticated && (
-            <div className="counter-chip">
-              <strong>{queueCount}</strong>
-              <span>active</span>
-            </div>
-          )}
+          
 
           <ThemeToggle />
 

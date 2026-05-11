@@ -117,23 +117,9 @@ export default function Profile({ user, images = [], jobs = [], onUpdateUser, on
           </div>
         </article>
 
-        <article className="surface-card">
-          <p className="eyebrow">Billing</p>
-          <div className="space-y-2 mt-3">
-            <label className="field">
-              <span className="field__label">Billing email</span>
-              <input value={billingEmail} onChange={(e) => setBillingEmail(e.target.value)} className="field__input" />
-            </label>
-            <div className="flex gap-2">
-              <button type="button" className="primary-button" onClick={handleBillingSave}>Save billing</button>
-            </div>
-          </div>
-        </article>
+      
 
-        <article className="surface-card">
-          <p className="eyebrow">Support</p>
-          <p className="mt-3 text-sm text-[var(--text-soft)]">Need help with billing or account recovery? Contact support.</p>
-        </article>
+     
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

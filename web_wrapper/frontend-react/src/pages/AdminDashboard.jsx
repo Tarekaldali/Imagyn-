@@ -69,11 +69,7 @@ export default function AdminDashboard({
             <p className="admin-metric__value">{stats.total_users || 0}</p>
             <p className="admin-metric__hint">{stats.admin_users || 0} admin accounts</p>
           </article>
-          <article className="admin-metric">
-            <p className="admin-metric__label">Active jobs</p>
-            <p className="admin-metric__value">{stats.active_jobs || 0}</p>
-            <p className="admin-metric__hint">{stats.completed_jobs || 0} completed renders</p>
-          </article>
+          
           <article className="admin-metric">
             <p className="admin-metric__label">Credit balance</p>
             <p className="admin-metric__value">{stats.credit_balance_total || 0}</p>
@@ -116,54 +112,7 @@ export default function AdminDashboard({
       </section>
 
       {/* Analysis section */}
-      <section className="admin-section" id="analysis">
-        <div className="admin-section__header">
-          <div>
-            <p className="eyebrow">Analysis</p>
-            <h2 className="admin-section__title">Generation operations and insights</h2>
-          </div>
-        </div>
-
-        <div className="admin-grid">
-          <section className="admin-panel admin-panel--wide">
-            <div className="admin-panel__header">
-              <div>
-                <p className="eyebrow">Credit Consumption</p>
-                <h2 className="admin-panel__title">7-day platform delta</h2>
-              </div>
-            </div>
-            <div className="credit-chart" aria-hidden>
-              {/* Placeholder for charts - can integrate Chart.js here */}
-            </div>
-          </section>
-
-          <section className="admin-panel">
-            <div className="admin-panel__header">
-              <div>
-                <p className="eyebrow">Recent jobs</p>
-                <h2 className="admin-panel__title">Generation operations</h2>
-              </div>
-            </div>
-
-            <div className="admin-jobs">
-              {recentJobs.map((job) => (
-                <article key={job.id} className="admin-job-card">
-                  <div className="admin-job-card__main">
-                    <strong>{job.model_name || 'Default model'}</strong>
-                    <span>{job.prompt}</span>
-                  </div>
-                  <div className="admin-job-card__meta">
-                    <span>{job.status}</span>
-                    <span>{formatDuration(job.gpu_time)}</span>
-                    <span>{formatDateTime(job.created_at)}</span>
-                  </div>
-                </article>
-              ))}
-              {recentJobs.length === 0 && <div className="text-sm text-[var(--text-soft)]">No recent jobs</div>}
-            </div>
-          </section>
-        </div>
-      </section>
+      
 
       {/* Plans section */}
       <section className="admin-section" id="plans">
@@ -244,23 +193,6 @@ export default function AdminDashboard({
                 </label>
               </article>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Operation section */}
-      <section className="admin-section" id="operation">
-        <div className="admin-section__header">
-          <div>
-            <p className="eyebrow">Operations</p>
-            <h2 className="admin-section__title">Owner command center</h2>
-          </div>
-        </div>
-
-        <div className="admin-panel">
-          <div className="flex gap-3">
-            <button type="button" className="primary-button" onClick={() => setCreating(true)}>Add plan</button>
-            <button type="button" className="secondary-button" onClick={onRefresh}>Refresh overview</button>
           </div>
         </div>
       </section>
